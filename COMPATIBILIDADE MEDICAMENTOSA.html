@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compatibilidade em Y - Enfermagem UTI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f8fafc; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slideIn {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes pulse-red {
+            0%, 100% { background-color: #fee2e2; border-color: #f87171; }
+            50% { background-color: #fecaca; border-color: #ef4444; }
+        }
+        .alert-pulse {
+            animation: pulse-red 2s infinite;
+        }
+    </style>
+</head>
+<body class="text-gray-800 h-screen w-screen flex flex-col bg-slate-50 overflow-hidden font-sans">
+
+    <!-- Container Principal -->
+    <div class="max-w-6xl mx-auto w-full bg-white shadow-xl flex flex-col h-full sm:rounded-none lg:border-x border-slate-200">
+        
+        <!-- App Header -->
+        <header class="bg-gradient-to-r from-indigo-800 to-indigo-600 p-4 sm:p-6 text-white shrink-0 shadow-md z-10 relative">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                        <i data-lucide="git-merge" class="w-6 h-6 sm:w-8 sm:h-8 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight leading-none">Mapeamento em Y</h1>
+                        <p class="text-indigo-200 text-xs sm:text-sm mt-1 font-medium">Análise de Compatibilidade Medicamentosa Simultânea</p>
+                    </div>
+                </div>
+                <button onclick="resetApp()" class="flex items-center text-indigo-100 hover:text-white bg-indigo-700/50 hover:bg-indigo-700 p-2 sm:px-4 sm:py-2 rounded-lg transition-all text-sm font-semibold border border-indigo-500/30">
+                    <i data-lucide="trash-2" class="w-4 h-4 sm:mr-2"></i>
+                    <span class="hidden sm:inline">Limpar Vias</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Seletor de Tipo de Acesso -->
+        <div class="bg-slate-50 p-4 sm:p-6 border-b border-slate-200 shrink-0">
+            <div class="max-w-3xl mx-auto">
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 text-center sm:text-left">
+                    Configuração do Acesso Venoso
+                </label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <button onclick="setRoutes(1)" id="btn-route-1" class="route-btn relative overflow-hidden group px-4 py-3 border-2 rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all bg-white border-slate-200 text-slate-600 hover:border-indigo-300">
+                        <i data-lucide="droplet" class="w-6 h-6 mb-1 text-slate-400 group-hover:text-indigo-400 transition-colors icon-btn"></i>
+                        <span>1 Via (AVP)</span>
+                    </button>
+                    <button onclick="setRoutes(2)" id="btn-route-2" class="route-btn relative overflow-hidden group px-4 py-3 border-2 rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all bg-white border-slate-200 text-slate-600 hover:border-indigo-300">
+                        <i data-lucide="split" class="w-6 h-6 mb-1 text-slate-400 group-hover:text-indigo-400 transition-colors icon-btn"></i>
+                        <span>2 Vias (Duplo)</span>
+                    </button>
+                    <button onclick="setRoutes(3)" id="btn-route-3" class="route-btn relative overflow-hidden group px-4 py-3 border-2 rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all bg-white border-slate-200 text-slate-600 hover:border-indigo-300">
+                        <i data-lucide="git-branch" class="w-6 h-6 mb-1 text-slate-400 group-hover:text-indigo-400 transition-colors icon-btn"></i>
+                        <span>3 Vias (Triplo)</span>
+                    </button>
+                    <button onclick="setRoutes(4)" id="btn-route-4" class="route-btn relative overflow-hidden group px-4 py-3 border-2 rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all bg-white border-slate-200 text-slate-600 hover:border-indigo-300">
+                        <i data-lucide="git-merge" class="w-6 h-6 mb-1 text-slate-400 group-hover:text-indigo-400 transition-colors icon-btn"></i>
+                        <span>4 Vias (Quad)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container dos Lúmens -->
+        <div class="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-100/50">
+            <div id="lumens-container" class="max-w-6xl mx-auto">
+                <!-- O conteúdo será injetado dinamicamente pelo JavaScript -->
+            </div>
+            
+            <div class="max-w-6xl mx-auto mt-6">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-800 flex items-start shadow-sm">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 mr-3 shrink-0 mt-0.5 text-yellow-600"></i>
+                    <div>
+                        <strong class="font-bold block mb-1">Aviso Legal & Importante:</strong>
+                        Este simulador engloba interações físico-químicas das drogas mais críticas em ambiente de terapia intensiva. A ausência de alerta vermelho <strong>não garante</strong> estabilidade absoluta para misturas prolongadas. Consulte sempre o farmacêutico clínico ou tabelas institucionais (ex: Trissel's) em caso de dúvida. Algumas drogas (ex: NPT, Sangue, Propofol) exigem vias exclusivas independentemente de compatibilidade em Y.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Inicializa ícones
+        lucide.createIcons();
+
+        // --- BANCO DE DADOS DE DROGAS ---
+        // Lista alfabética para o Select
+        const drugDatabase = [
+            "Ácido Tranexâmico", "Adrenalina (Epinefrina)", "Amiodarona", 
+            "Amicacina", "Ampicilina + Sulbactam", "Bicarbonato de Sódio 8,4%",
+            "Cefepime", "Ceftriaxona", "Clindamicina", "Cloreto de Potássio (KCl)", 
+            "Dexametasona", "Dexmedetomidina (Precedex)", "Diazepam", 
+            "Dobutamina", "Dopamina", "Fenitoína", "Fentanil", 
+            "Fluconazol", "Furosemida", "Haloperidol", "Heparina Sódica", 
+            "Hidrocortisona", "Insulina Regular", "Ketamina", "Levofloxacino", 
+            "Meropenem", "Metoclopramida (Plasil)", "Midazolam", 
+            "Milrinona", "Noradrenalina", "Omeprazol", "Ondansetrona", 
+            "Pantoprazol", "Piperacilina + Tazobactam (Tazocin)", 
+            "Polimixina B", "Propofol", "Ringer Lactato", 
+            "Soro Fisiológico 0,9%", "Soro Glicosado 5%", "Sulfato de Magnésio", 
+            "Tigeciclina", "Vancomicina", "Vasopressina"
+        ].sort();
+
+        // --- MATRIZ DE INCOMPATIBILIDADES CRÍTICAS ---
+        // Se retornar string, é incompatível.
+        // Padrão de chave: "DrogaA|DrogaB" (sempre em ordem alfabética para facilitar a busca)
+        const incompatibilities = {
+            // FENITOÍNA (O Terror da Precipitação)
+            "Fenitoína|Soro Glicosado 5%": "CRÍTICO: Fenitoína cristaliza em solução glicosada. Diluir APENAS em SF 0,9%.",
+            "Fenitoína|Ringer Lactato": "CRÍTICO: Fenitoína precipita em Ringer. Exige SF 0,9%.",
+            "Bicarbonato de Sódio 8,4%|Fenitoína": "CRÍTICO: Precipitação física imediata. Via Exclusiva.",
+            "Fenitoína|Noradrenalina": "CRÍTICO: Precipitação física com aminas vasoativas.",
+            "Fenitoína|Fentanil": "CRÍTICO: Incompatibilidade física (precipitação).",
+            "Fenitoína|Midazolam": "CRÍTICO: Precipitação imediata.",
+            "Fenitoína|Propofol": "CRÍTICO: Precipitação. Propofol também exige via exclusiva por quebra de emulsão.",
+            "Amiodarona|Fenitoína": "CRÍTICO: Risco altíssimo de cristalização cruzada.",
+            "Dobutamina|Fenitoína": "CRÍTICO: Precipitação física com aminas vasoativas.",
+            
+            // BICARBONATO (Alcalino extremo, inativa ácidos e catecolaminas)
+            "Bicarbonato de Sódio 8,4%|Noradrenalina": "QUÍMICA: Inativação da Noradrenalina pelo pH alcalino do bicarbonato.",
+            "Adrenalina (Epinefrina)|Bicarbonato de Sódio 8,4%": "QUÍMICA: Inativação da Adrenalina pelo pH alcalino.",
+            "Bicarbonato de Sódio 8,4%|Dobutamina": "QUÍMICA: Inativação da Dobutamina pelo pH.",
+            "Bicarbonato de Sódio 8,4%|Dopamina": "QUÍMICA: Inativação da Dopamina pelo pH.",
+            "Bicarbonato de Sódio 8,4%|Midazolam": "FÍSICA: Incompatibilidade visual/precipitação documentada.",
+            "Amiodarona|Bicarbonato de Sódio 8,4%": "FÍSICA: Precipitação por alteração abrupta de pH.",
+            "Bicarbonato de Sódio 8,4%|Ringer Lactato": "FÍSICA: Risco de precipitação de carbonato de cálcio.",
+            "Bicarbonato de Sódio 8,4%|Meropenem": "QUÍMICA: Degradação acelerada do Meropenem em pH alcalino.",
+            "Bicarbonato de Sódio 8,4%|Vancomicina": "FÍSICA: Precipitação imediata.",
+            
+            // AMIODARONA
+            "Amiodarona|Heparina Sódica": "FÍSICA: Precipitação. Não administrar simultaneamente.",
+            "Amiodarona|Bicarbonato de Sódio 8,4%": "FÍSICA: Precipitação.",
+            "Amiodarona|Furosemida": "FÍSICA: Precipitação severa documentada.",
+            
+            // CEFTRIXONA (Cálcio)
+            "Ceftriaxona|Ringer Lactato": "CRÍTICO MUNDIAL: Precipitação fatal de sais de cálcio nos pulmões/rins. NUNCA misturar, mesmo em Y.",
+
+            // PANTOPRAZOL / OMEPRAZOL
+            "Midazolam|Pantoprazol": "FÍSICA: Formação de precipitado amarelo.",
+            "Midazolam|Omeprazol": "FÍSICA: Formação de precipitado amarelo.",
+            "Noradrenalina|Pantoprazol": "QUÍMICA/FÍSICA: Risco de degradação da amina.",
+            "Ondansetrona|Pantoprazol": "FÍSICA: Precipitação.",
+            "Fentanil|Pantoprazol": "FÍSICA: Dados apontam risco de precipitação.",
+
+            // PROPOFOL (Emulsão Lipídica - Exige via exclusiva na prática)
+            // Para o simulador, vamos alertar sobre a quebra da emulsão
+            "Pantoprazol|Propofol": "FÍSICA: Risco de quebra da emulsão lipídica.",
+            "Amicacina|Propofol": "FÍSICA: Incompatível (quebra da emulsão).",
+            "Ceftriaxona|Propofol": "FÍSICA: Incompatível.",
+            "Diazepam|Propofol": "FÍSICA: Precipitação e coalescência lipídica.",
+            
+            // FUROSEMIDA
+            "Dobutamina|Furosemida": "FÍSICA: Precipitação.",
+            "Furosemida|Midazolam": "FÍSICA: Precipitação e turvação.",
+
+            // HALOPERIDOL
+            "Haloperidol|Heparina Sódica": "FÍSICA: Precipitação.",
+
+            // PIPERACILINA + TAZOBACTAM (Tazocin)
+            "Piperacilina + Tazobactam (Tazocin)|Vancomicina": "FÍSICA: Precipitação e inativação cruzada. Evitar via simultânea.",
+            "Amiodarona|Piperacilina + Tazobactam (Tazocin)": "FÍSICA: Incompatível.",
+
+            // DIAZEPAM (Adere ao plástico, precipita com soro)
+            "Diazepam|Soro Fisiológico 0,9%": "FÍSICA: Diazepam puro ou mal diluído precipita e adere ao equipo PVC.",
+            "Diazepam|Ringer Lactato": "FÍSICA: Precipitação."
+        };
+
+        // Regras Especiais Singulares (Drogas que exigem atenção independentemente do par)
+        const exclusiveVias = [
+            "Propofol", // Idealmente exclusiva
+            "Nutrição Parenteral Total (NPT)" // NPT não tá na lista, mas seria exclusiva
+        ];
+
+        // --- ESTADO DO APP ---
+        let numRoutes = 3; // Padrão: CVC Triplo Lúmen
+        // lumenData armazena as drogas de cada via: { 1: ['Droga', ...], 2: [...], ... }
+        let lumenData = { 1: [], 2: [], 3: [], 4: [] }; 
+
+        // Cores e Temas dos Lúmens
+        const lumenThemes = {
+            1: { name: "Proximal (Via 1)", bg: "bg-emerald-50", border: "border-emerald-200", headerBg: "bg-emerald-100/50", dot: "bg-emerald-500", text: "text-emerald-900" },
+            2: { name: "Medial (Via 2)", bg: "bg-amber-50", border: "border-amber-200", headerBg: "bg-amber-100/50", dot: "bg-amber-500", text: "text-amber-900" },
+            3: { name: "Distal (Via 3)", bg: "bg-slate-50", border: "border-slate-200", headerBg: "bg-slate-100/50", dot: "bg-slate-500", text: "text-slate-900" },
+            4: { name: "Adicional (AVP / Via 4)", bg: "bg-purple-50", border: "border-purple-200", headerBg: "bg-purple-100/50", dot: "bg-purple-500", text: "text-purple-900" }
+        };
+
+        // Função Central de Verificação de Pares
+        function getIncompatibility(drugA, drugB) {
+            // Ordena alfabeticamente para criar a chave única
+            const pairKey = [drugA, drugB].sort().join("|");
+            return incompatibilities[pairKey] || null;
+        }
+
+        function setRoutes(count) {
+            numRoutes = count;
+            
+            // Atualiza botões
+            document.querySelectorAll('.route-btn').forEach(btn => {
+                btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-800');
+                btn.classList.add('border-slate-200', 'bg-white', 'text-slate-600');
+                const icon = btn.querySelector('svg') || btn.querySelector('i');
+                if (icon) {
+                    icon.classList.remove('text-indigo-600');
+                    icon.classList.add('text-slate-400');
+                }
+            });
+            
+            const activeBtn = document.getElementById(`btn-route-${count}`);
+            activeBtn.classList.remove('border-slate-200', 'bg-white', 'text-slate-600');
+            activeBtn.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-800');
+            const activeIcon = activeBtn.querySelector('svg') || activeBtn.querySelector('i');
+            if (activeIcon) {
+                activeIcon.classList.remove('text-slate-400');
+                activeIcon.classList.add('text-indigo-600');
+            }
+
+            // Limpa vias que não existem mais (se diminuiu de 4 para 2, limpa 3 e 4)
+            for(let i = count + 1; i <= 4; i++) {
+                lumenData[i] = [];
+            }
+
+            renderLumens();
+        }
+
+        function addDrug(viaIndex) {
+            const selectElement = document.getElementById(`select-drug-${viaIndex}`);
+            const drug = selectElement.value;
+            
+            if (drug && !lumenData[viaIndex].includes(drug)) {
+                lumenData[viaIndex].push(drug);
+                selectElement.value = ""; // Reseta o select
+                renderLumens();
+            }
+        }
+
+        function removeDrug(viaIndex, drugIndex) {
+            lumenData[viaIndex].splice(drugIndex, 1);
+            renderLumens();
+        }
+
+        function resetApp() {
+            lumenData = { 1: [], 2: [], 3: [], 4: [] };
+            renderLumens();
+        }
+
+        function renderLumens() {
+            const container = document.getElementById('lumens-container');
+            container.innerHTML = '';
+            
+            // Ajusta o grid baseado no número de vias
+            let gridCols = 'grid-cols-1';
+            if (numRoutes === 2) gridCols = 'md:grid-cols-2';
+            if (numRoutes === 3) gridCols = 'md:grid-cols-3 lg:grid-cols-3';
+            if (numRoutes === 4) gridCols = 'md:grid-cols-2 lg:grid-cols-4';
+            
+            container.className = `grid gap-4 sm:gap-6 ${gridCols}`;
+
+            // Cria options base para os selects
+            const drugOptionsHTML = drugDatabase.map(d => `<option value="${d}">${d}</option>`).join('');
+
+            for (let i = 1; i <= numRoutes; i++) {
+                const drugs = lumenData[i];
+                const theme = lumenThemes[i];
+                let hasCriticalAlert = false;
+                
+                // --- Motor de Análise para esta Via ---
+                let analysisHTML = '';
+                
+                if (drugs.length === 0) {
+                    analysisHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-400 py-6">
+                        <i data-lucide="inbox" class="w-8 h-8 mb-2 opacity-50"></i>
+                        <span class="text-xs font-medium">Via livre. Adicione medicações.</span>
+                    </div>`;
+                } 
+                else if (drugs.length === 1) {
+                    // Via Exclusiva Check
+                    if (exclusiveVias.includes(drugs[0])) {
+                        analysisHTML = `<div class="bg-blue-100 text-blue-800 p-3 rounded-lg flex items-start text-sm border border-blue-200 animate-slideIn">
+                            <i data-lucide="info" class="w-5 h-5 mr-2 shrink-0 mt-0.5"></i>
+                            <span><strong>${drugs[0]}</strong> está isolado. Mantenha preferencialmente em via exclusiva.</span>
+                        </div>`;
+                    } else {
+                        analysisHTML = `<div class="bg-emerald-100 text-emerald-800 p-3 rounded-lg flex items-center justify-center text-sm border border-emerald-200 font-medium animate-slideIn h-full">
+                            <i data-lucide="check-circle-2" class="w-5 h-5 mr-2"></i> Via Segura (Única Droga)
+                        </div>`;
+                    }
+                } 
+                else {
+                    let alerts = [];
+                    let hasPropofolWarning = false;
+
+                    // Análise combinatória: Verifica todos os pares dentro desta via
+                    for(let x = 0; x < drugs.length; x++) {
+                        // Alerta individual se Propofol estiver misturado
+                        if (drugs[x] === "Propofol" && !hasPropofolWarning) {
+                            alerts.push(`
+                                <div class="flex items-start text-xs text-orange-800 bg-orange-100 p-2.5 rounded-lg mb-2 border border-orange-200 animate-slideIn">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 mr-2 shrink-0 mt-0.5"></i> 
+                                    <div><strong>Atenção (Propofol):</strong> É recomendado administrar em via exclusiva (risco de quebra da emulsão lipídica).</div>
+                                </div>
+                            `);
+                            hasPropofolWarning = true;
+                        }
+
+                        // Verificação Cruzada
+                        for(let y = x + 1; y < drugs.length; y++) {
+                            const clash = getIncompatibility(drugs[x], drugs[y]);
+                            if (clash) {
+                                hasCriticalAlert = true;
+                                alerts.push(`
+                                    <div class="flex items-start text-xs text-red-900 bg-red-100 p-2.5 rounded-lg mb-2 border border-red-300 shadow-sm animate-slideIn">
+                                        <i data-lucide="octagon-alert" class="w-4 h-4 mr-2 shrink-0 mt-0.5 text-red-600"></i> 
+                                        <div>
+                                            <div class="font-bold mb-0.5">${drugs[x]} <span class="text-red-500 mx-1">X</span> ${drugs[y]}</div>
+                                            <div class="leading-tight opacity-90">${clash}</div>
+                                        </div>
+                                    </div>
+                                `);
+                            }
+                        }
+                    }
+
+                    if (alerts.length > 0) {
+                        analysisHTML = alerts.join('');
+                    } else {
+                        analysisHTML = `
+                            <div class="bg-emerald-100 text-emerald-800 p-3 rounded-lg flex flex-col items-center justify-center text-center font-bold border border-emerald-200 animate-slideIn h-full">
+                                <i data-lucide="shield-check" class="w-6 h-6 mb-1 text-emerald-600"></i>
+                                Seguros em Y
+                                <span class="font-normal text-[10px] mt-1 opacity-80 leading-tight">Sem relatos críticos documentados entre estas soluções.</span>
+                            </div>
+                        `;
+                    }
+                }
+
+                // --- Construção do HTML do Card do Lúmen ---
+                // Se houver conflito vermelho, a borda e o fundo do card mudam de estilo drasticamente.
+                const cardBaseClass = hasCriticalAlert 
+                    ? "border-2 border-red-400 bg-red-50 shadow-red-100/50" 
+                    : `border ${theme.border} bg-white`;
+
+                const headerClass = hasCriticalAlert
+                    ? "bg-red-100/80 border-b border-red-200 text-red-900"
+                    : `${theme.headerBg} border-b ${theme.border} ${theme.text}`;
+
+                const dotClass = hasCriticalAlert ? "bg-red-500 animate-pulse" : theme.dot;
+
+                const nameDisplay = numRoutes === 1 ? "Via Única Periférica" : theme.name;
+
+                container.innerHTML += `
+                    <div class="rounded-2xl overflow-hidden shadow-sm flex flex-col h-full transition-colors duration-300 ${cardBaseClass}">
+                        
+                        <!-- Cabeçalho -->
+                        <div class="p-3.5 flex items-center justify-between ${headerClass}">
+                            <h3 class="font-bold text-sm flex items-center tracking-tight">
+                                <span class="w-2.5 h-2.5 rounded-full ${dotClass} mr-2 shadow-inner"></span>
+                                ${nameDisplay}
+                            </h3>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/50 border border-black/5">${drugs.length} itens</span>
+                        </div>
+                        
+                        <!-- Adicionar Droga -->
+                        <div class="p-4 border-b border-slate-100 bg-white/50">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Adicionar Solução/Droga</label>
+                            <div class="flex gap-2">
+                                <select id="select-drug-${i}" class="w-full text-xs p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm font-medium text-slate-700">
+                                    <option value="" disabled selected>Selecione a medicação...</option>
+                                    ${drugOptionsHTML}
+                                </select>
+                                <button onclick="addDrug(${i})" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 transition-colors shadow-sm focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Drogas Ativas -->
+                        <div class="p-4 bg-white/50 flex-1 border-b border-slate-100">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Infundindo Atualmente</label>
+                            <div class="flex flex-col gap-2 min-h-[60px]">
+                                ${drugs.map((d, index) => `
+                                    <div class="flex justify-between items-center bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 shadow-sm animate-slideIn">
+                                        <span class="flex items-center"><i data-lucide="activity" class="w-3 h-3 mr-1.5 text-slate-400"></i> ${d}</span>
+                                        <button onclick="removeDrug(${i}, ${index})" class="text-slate-400 hover:text-red-500 p-1 transition-colors bg-slate-50 hover:bg-red-50 rounded">
+                                            <i data-lucide="x" class="w-3 h-3"></i>
+                                        </button>
+                                    </div>
+                                `).join('')}
+                                ${drugs.length === 0 ? `<div class="text-xs text-slate-400 text-center italic mt-2">Nenhuma droga inserida.</div>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Painel de Análise/Resultado -->
+                        <div class="p-4 min-h-[100px] ${hasCriticalAlert ? 'bg-red-50' : 'bg-slate-50'}">
+                            <label class="block text-[10px] font-bold ${hasCriticalAlert ? 'text-red-500' : 'text-slate-400'} uppercase tracking-wider mb-3">Resultado da Interação</label>
+                            ${analysisHTML}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Re-renderiza os ícones gerados dinamicamente
+            lucide.createIcons();
+        }
+
+        // Inicializa o app com 3 vias ao abrir
+        window.onload = () => {
+            setRoutes(3);
+        };
+    </script>
+</body>
+</html>

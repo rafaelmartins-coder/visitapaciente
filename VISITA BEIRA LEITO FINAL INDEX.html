@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Visita Beira-Leito</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="text-gray-800 p-0 sm:p-4 md:p-8 h-screen w-screen flex flex-col bg-gray-100 overflow-hidden">
+
+    <!-- Container Principal: Em celulares, ocupa a tela toda (h-full). Em telas maiores, tem bordas arredondadas e altura controlada -->
+    <div class="max-w-4xl mx-auto w-full bg-white sm:rounded-xl shadow-lg overflow-hidden flex flex-col h-full md:h-[90vh]">
+        
+        <!-- App Header -->
+        <div class="bg-blue-700 p-4 text-white flex justify-between items-center shrink-0">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="stethoscope" class="w-6 h-6"></i>
+                <h1 class="text-lg md:text-xl font-bold tracking-tight">Evolução Beira-Leito</h1>
+            </div>
+            <button onclick="showClearModal()" class="text-blue-100 hover:text-white p-2 rounded-full hover:bg-blue-600 transition" title="Nova Avaliação">
+                <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Cabeçalho do Paciente (Otimizado para Mobile) -->
+        <div class="bg-blue-50 p-3 sm:p-4 border-b border-blue-100 grid grid-cols-2 md:grid-cols-3 gap-3 shrink-0">
+            <div class="col-span-1">
+                <label class="block text-[10px] sm:text-xs font-semibold text-blue-800 uppercase tracking-wider mb-1">Iniciais (Paciente)</label>
+                <div class="flex items-center bg-white rounded border border-blue-200 focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden px-2">
+                    <i data-lucide="user" class="w-4 h-4 text-blue-400"></i>
+                    <input type="text" id="patientInitials" placeholder="Ex: JSM" class="w-full p-2 outline-none text-sm font-bold uppercase" oninput="this.value = this.value.toUpperCase()">
+                </div>
+            </div>
+            <div class="col-span-1">
+                <label class="block text-[10px] sm:text-xs font-semibold text-blue-800 uppercase tracking-wider mb-1">Leito</label>
+                <div class="flex items-center bg-white rounded border border-blue-200 focus-within:ring-2 focus-within:ring-blue-500 overflow-hidden px-2">
+                    <i data-lucide="bed" class="w-4 h-4 text-blue-400"></i>
+                    <input type="text" id="bedNumber" placeholder="Ex: UTI 05" class="w-full p-2 outline-none text-sm font-bold uppercase" oninput="this.value = this.value.toUpperCase()">
+                </div>
+            </div>
+            <div class="col-span-2 md:col-span-1">
+                <label class="block text-[10px] sm:text-xs font-semibold text-blue-800 uppercase tracking-wider mb-1">Hora da Visita</label>
+                <input type="time" id="visitTime" class="w-full p-1.5 border border-blue-200 rounded text-sm bg-white font-medium">
+            </div>
+        </div>
+
+        <!-- Navegação das Abas -->
+        <div class="flex overflow-x-auto border-b border-gray-200 bg-gray-50 custom-scrollbar shrink-0" id="tabs-nav">
+            <button onclick="switchTab('identification')" class="tab-btn active flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 border-blue-600 text-blue-700 bg-blue-50" data-target="identification">
+                <i data-lucide="shield-check" class="w-4 h-4"></i> <span>Segurança</span>
+            </button>
+            <button onclick="switchTab('physical')" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50" data-target="physical">
+                <i data-lucide="activity" class="w-4 h-4"></i> <span>Avaliação Física</span>
+            </button>
+            <button onclick="switchTab('scales')" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50" data-target="scales">
+                <i data-lucide="clipboard-list" class="w-4 h-4"></i> <span>Escalas</span>
+            </button>
+            <button onclick="switchTab('evolution')" class="tab-btn flex items-center space-x-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50" data-target="evolution">
+                <i data-lucide="file-text" class="w-4 h-4"></i> <span>Evolução Final</span>
+            </button>
+        </div>
+
+        <!-- Área de Conteúdo das Abas -->
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-white relative">
+            
+            <!-- Tab: Segurança -->
+            <div id="tab-identification" class="tab-content animate-fadeIn space-y-6">
+                <h2 class="text-lg font-bold text-gray-700 flex items-center border-b pb-2">
+                    <i data-lucide="shield-check" class="w-5 h-5 mr-2 text-blue-600"></i> Segurança e Identificação
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="font-semibold text-gray-700 mb-3 text-sm uppercase">Checagem de Identificação</h3>
+                        <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded border border-transparent hover:border-gray-200">
+                            <input type="checkbox" id="chk-id" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                            <span class="text-gray-700 text-sm">Pulseira de identificação legível e correta?</span>
+                        </label>
+                        
+                        <div class="mt-4 border-t pt-4">
+                            <h3 class="font-semibold text-gray-700 mb-3 text-sm uppercase">Pulseiras Adicionais</h3>
+                            <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                                <input type="checkbox" id="chk-allergy-band" class="w-5 h-5 text-red-500 rounded cursor-pointer">
+                                <span class="text-gray-700 text-sm">Pulseira de Alergia (Vermelha)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="font-semibold text-gray-700 mb-3 text-sm uppercase">Segurança do Leito</h3>
+                        <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                            <input type="checkbox" id="chk-rails" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                            <span class="text-gray-700 text-sm">Grades elevadas e travadas?</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                            <input type="checkbox" id="chk-bed-elevated" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                            <span class="text-gray-700 text-sm">Cabeceira elevada a 30-45°?</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                            <input type="checkbox" id="chk-bed-low" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                            <span class="text-gray-700 text-sm">Cama na posição mais baixa?</span>
+                        </label>
+                        <label class="flex items-center space-x-3 cursor-pointer p-2 hover:bg-gray-50 rounded">
+                            <input type="checkbox" id="chk-bell" class="w-5 h-5 text-blue-600 rounded cursor-pointer">
+                            <span class="text-gray-700 text-sm">Campainha de chamada ao alcance?</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+                    <h3 class="font-semibold text-red-800 mb-2 flex items-center">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 mr-2"></i> Alergias Relatadas
+                    </h3>
+                    <input type="text" id="input-allergies" class="w-full p-2 border border-red-300 rounded text-sm bg-white" placeholder="Ex: Nenhuma, Penicilina, Dipirona...">
+                </div>
+            </div>
+
+            <!-- Tab: Avaliação Física -->
+            <div id="tab-physical" class="tab-content hidden animate-fadeIn space-y-6 pb-10">
+                <h2 class="text-lg font-bold text-gray-700 flex items-center border-b pb-2">
+                    <i data-lucide="stethoscope" class="w-5 h-5 mr-2 text-blue-600"></i> Avaliação Física (Céfalo-Caudal)
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Neurológico -->
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center text-sm"><i data-lucide="brain" class="w-4 h-4 mr-2 text-indigo-500"></i> Neurológico</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Nível de Consciência</label>
+                                <select id="phys-neuro-status" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Alerta e orientado</option><option>Alerta e confuso</option><option>Sonolento, despertável</option><option>Torporoso</option><option>Comatoso / Sedado</option><option>Agitado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Pupilas</label>
+                                <select id="phys-neuro-pupil" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Isocóricas e fotorreagentes</option><option>Anisocóricas</option><option>Midriáticas</option><option>Mióticas</option><option>Não reagentes</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Dispositivo Neurológico</label>
+                                <select id="phys-neuro-device" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Nenhum</option><option>DVE (Derivação Ventricular Externa)</option><option>Cateter de PIC</option><option>DVP (Derivação Ventriculoperitoneal)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Observações (Neurológico)</label>
+                                <input type="text" id="phys-neuro-notes" placeholder="Ex: déficit motor em MSD" class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pulmonar -->
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center text-sm"><i data-lucide="wind" class="w-4 h-4 mr-2 text-cyan-500"></i> Pulmonar / Respiratório</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Padrão Respiratório</label>
+                                <select id="phys-pulm-breathing" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Eupneico em ar ambiente</option><option>Eupneico com O2 suplementar</option><option>Taquipneico</option><option>Dispneico</option><option>Ventilação Mecânica Invasiva</option><option>VNI</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Ausculta Pulmonar</label>
+                                <select id="phys-pulm-ausc" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Murmúrio vesicular presente, sem ruídos adventícios</option><option>Roncos presentes</option><option>Sibilos presentes</option><option>Crepitações em bases</option><option>MV diminuído globalmente</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Dispositivo Respiratório</label>
+                                <select id="phys-pulm-device" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Nenhum</option><option>Cateter Nasal de O2</option><option>Máscara de O2 / Venturi</option><option>Traqueostomia (TQT)</option><option>Tubo Orotraqueal (TOT)</option><option>Dreno de Tórax</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Observações (Pulmonar)</label>
+                                <input type="text" id="phys-pulm-notes" placeholder="Ex: secreção espessa" class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cardíaco -->
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center text-sm"><i data-lucide="activity" class="w-4 h-4 mr-2 text-red-500"></i> Cardíaco / Hemodinâmico</h3>
+                        <div class="space-y-3">
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Ritmo</label>
+                                    <select id="phys-cardiac-rhythm" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option>Regular</option><option>Irregular</option><option>Taquicárdico</option><option>Bradicárdico</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Pulso</label>
+                                    <select id="phys-cardiac-pulse" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option>Cheio e rítmico</option><option>Fino / Filiforme</option><option>Ausente perifericamente</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Enchimento Capilar (TEC)</label>
+                                <select id="phys-cardiac-capillary" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Tempo de enchimento capilar < 3 seg (Normal)</option>
+                                    <option>Tempo de enchimento capilar > 3 seg (Lentificado)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Observações (Cardíaco)</label>
+                                <input type="text" id="phys-cardiac-notes" placeholder="Ex: edema de MMII +/4+" class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gastrointestinal -->
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center text-sm"><i data-lucide="scissors" class="w-4 h-4 mr-2 text-orange-500 transform rotate-90"></i> Gastrointestinal</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Dieta</label>
+                                <select id="phys-gi-diet" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Aceitando dieta oral</option><option>Dieta via SNE/SNG</option><option>Jejum</option><option>NPT</option><option>Inapetente</option>
+                                </select>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Abdome</label>
+                                    <select id="phys-gi-abd" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option>Plano, flácido, indolor</option><option>Globoso, timpânico</option><option>Distendido, tenso</option><option>Doloroso à palpação</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Hábito Intestinal</label>
+                                    <select id="phys-gi-bowel" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                        <option>Hábito preservado</option><option>Ausência de evacuação</option><option>Diarreia</option><option>Melena/Enterorragia</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Dispositivo GI</label>
+                                <select id="phys-gi-device" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Nenhum</option><option>Sonda Nasogástrica (SNG) Aberta</option><option>Sonda Nasogástrica (SNG) Fechada</option><option>Sonda Nasoenteral (SNE)</option><option>Ostomia Intestinal</option><option>Dreno Abdominal</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Observações (Gastrointestinal)</label>
+                                <input type="text" id="phys-gi-notes" placeholder="Ex: RHA presentes" class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Urinário -->
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm md:col-span-1">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center text-sm"><i data-lucide="droplets" class="w-4 h-4 mr-2 text-yellow-500"></i> Urinário</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Eliminação</label>
+                                <select id="phys-uri-elim" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Diurese espontânea</option><option>Uso de fralda</option><option>Anúria/Oligúria</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Aspecto da Urina</label>
+                                <select id="phys-uri-app" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Clara/amarelada (Normal)</option><option>Concentrada</option><option>Hematúrica (sangue)</option><option>Piúrica (turva/pus)</option><option>Colúrica (escura)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Dispositivo Urinário</label>
+                                <select id="phys-uri-device" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Nenhum</option><option>Sonda Vesical de Demora (SVD)</option><option>Sonda Vesical de Alívio (SVA)</option><option>Cistostomia</option><option>Nefrostomia</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Observações (Urinário)</label>
+                                <input type="text" id="phys-uri-notes" placeholder="Ex: volume 500ml" class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tegumentar -->
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm md:col-span-1">
+                        <h3 class="font-semibold text-gray-700 mb-3 flex items-center text-sm"><i data-lucide="user" class="w-4 h-4 mr-2 text-pink-500"></i> Tegumentar (Pele)</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Condição da Pele</label>
+                                <select id="phys-int-skin" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Íntegra, normocorada, hidratada</option><option>Desidratada, descamativa</option><option>Ictérica</option><option>Pálida / Cianótica</option><option>Com lesões (detalhar)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Temperatura</label>
+                                <select id="phys-int-temp" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700 outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option>Normotérmico</option><option>Febril / Hipertermia</option><option>Hipotérmico</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Lesões / LPPs / Observações</label>
+                                <input type="text" id="phys-int-notes" placeholder="Ex: LPP Estágio 2 em região sacra" class="w-full p-2 border rounded text-sm outline-none focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dispositivos Vasculares Dinâmicos -->
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm md:col-span-2">
+                        <div class="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 class="font-semibold text-gray-700 flex items-center text-sm"><i data-lucide="syringe" class="w-4 h-4 mr-2 text-purple-500"></i> Acessos Vasculares</h3>
+                            <button type="button" onclick="addVascularAccess()" class="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full flex items-center hover:bg-purple-200 transition font-bold">
+                                <i data-lucide="plus" class="w-3 h-3 mr-1"></i> Adicionar Acesso
+                            </button>
+                        </div>
+                        
+                        <div id="vascular-container" class="space-y-4">
+                            <!-- Acessos serão injetados via JS aqui -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Escalas -->
+            <div id="tab-scales" class="tab-content hidden animate-fadeIn space-y-6 pb-10">
+                <div class="flex items-center justify-between border-b pb-2">
+                    <h2 class="text-lg font-bold text-gray-700 flex items-center">
+                        <i data-lucide="clipboard-list" class="w-5 h-5 mr-2 text-blue-600"></i> Escalas de Enfermagem
+                    </h2>
+                    <span class="text-[10px] sm:text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Cálculo Automático</span>
+                </div>
+
+                <!-- Glasgow -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-blue-800 text-sm">Escala de Coma de Glasgow (ECG-P)</h3>
+                        <div id="glasgow-score-badge" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold text-sm transition-colors">Total: 15</div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Abertura Ocular (AO)</label>
+                            <select id="scale-gcs-eye" class="w-full p-2 border rounded bg-gray-50 text-gray-700" onchange="calculateScales()">
+                                <option value="4">4 - Espontânea</option><option value="3">3 - Ao som</option><option value="2">2 - À pressão (dor)</option><option value="1">1 - Ausente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Resposta Verbal (MRV)</label>
+                            <select id="scale-gcs-verbal" class="w-full p-2 border rounded bg-gray-50 text-gray-700" onchange="calculateScales()">
+                                <option value="5">5 - Orientada</option><option value="4">4 - Confusa</option><option value="3">3 - Palavras isoladas</option><option value="2">2 - Sons incompressíveis</option><option value="1">1 - Ausente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Melhor Resposta Motora (MRM)</label>
+                            <select id="scale-gcs-motor" class="w-full p-2 border rounded bg-gray-50 text-gray-700" onchange="calculateScales()">
+                                <option value="6">6 - Obedece comandos</option><option value="5">5 - Localiza a dor</option><option value="4">4 - Flexão normal</option><option value="3">3 - Flexão anormal (decorticação)</option><option value="2">2 - Extensão (descerebração)</option><option value="1">1 - Ausente</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Reatividade Pupilar (Subtrair)</label>
+                            <select id="scale-gcs-pupil" class="w-full p-2 border rounded bg-gray-50 text-gray-700" onchange="calculateScales()">
+                                <option value="0">0 - Ambas reagem (+0)</option><option value="1">1 - Apenas uma reage (-1)</option><option value="2">2 - Nenhuma reage (-2)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RASS -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-blue-800 text-sm">Escala de RASS (Sedação/Agitação)</h3>
+                        <div id="rass-score-badge" class="bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold text-sm transition-colors">Score: 0</div>
+                    </div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Nível de Agitação / Sedação</label>
+                    <select id="scale-rass" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700" onchange="calculateScales()">
+                        <option value="4">+4 - Combativo</option><option value="3">+3 - Muito agitado</option><option value="2">+2 - Agitado</option><option value="1">+1 - Inquieto</option><option value="0" selected>0 - Alerta e calmo</option><option value="-1">-1 - Sonolento</option><option value="-2">-2 - Sedação leve</option><option value="-3">-3 - Sedação moderada</option><option value="-4">-4 - Sedação profunda</option><option value="-5">-5 - Não desperta</option>
+                    </select>
+                </div>
+
+                <!-- Braden -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-blue-800 text-sm">Escala de Braden (Lesão por Pressão)</h3>
+                        <div id="braden-score-badge" class="bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold text-sm transition-colors">Total: 23 (Baixo Risco)</div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Percepção Sensorial</label><select id="scale-braden-sensory" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="4">4 - Nenhuma limitação</option><option value="3">3 - Ligeira limitação</option><option value="2">2 - Muito limitado</option><option value="1">1 - Totalmente limitado</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Umidade</label><select id="scale-braden-moisture" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="4">4 - Raramente úmida</option><option value="3">3 - Ocasionalmente úmida</option><option value="2">2 - Muito úmida</option><option value="1">1 - Constantemente úmida</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Atividade</label><select id="scale-braden-activity" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="4">4 - Anda frequentemente</option><option value="3">3 - Anda ocasionalmente</option><option value="2">2 - Confinado à cadeira</option><option value="1">1 - Acamado</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Mobilidade</label><select id="scale-braden-mobility" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="4">4 - Total independente</option><option value="3">3 - Levemente limitado</option><option value="2">2 - Bastante limitado</option><option value="1">1 - Totalmente imóvel</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Nutrição</label><select id="scale-braden-nutrition" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="4">4 - Excelente</option><option value="3">3 - Adequada</option><option value="2">2 - Provável Inadequada</option><option value="1">1 - Muito pobre</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Fricção e Cisalhamento</label><select id="scale-braden-friction" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="3">3 - Nenhum problema</option><option value="2">2 - Problema potencial</option><option value="1">1 - Problema existente</option></select></div>
+                    </div>
+                </div>
+
+                <!-- Morse -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-blue-800 text-sm">Escala de Morse (Risco de Queda)</h3>
+                        <div id="morse-score-badge" class="bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold text-sm transition-colors">Total: 0 (Baixo Risco)</div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Histórico de Queda (últimos 3m)</label><select id="scale-morse-history" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="0">0 - Não</option><option value="25">25 - Sim</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Diagnóstico Secundário (≥2)</label><select id="scale-morse-diag" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="0">0 - Não</option><option value="15">15 - Sim</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Auxílio na Deambulação</label><select id="scale-morse-ambulation" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="0">0 - Nenhum/Acamado</option><option value="15">15 - Muleta/Andador</option><option value="30">30 - Apoia em móveis</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Terapia Intravenosa</label><select id="scale-morse-iv" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="0">0 - Não</option><option value="20">20 - Sim</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Marcha</label><select id="scale-morse-gait" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="0">0 - Normal/Acamado</option><option value="10">10 - Fraca</option><option value="20">20 - Comprometida</option></select></div>
+                        <div><label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Estado Mental</label><select id="scale-morse-mental" class="w-full p-2 border rounded bg-gray-50" onchange="calculateScales()"><option value="0">0 - Orientado</option><option value="15">15 - Superestima limitação</option></select></div>
+                    </div>
+                </div>
+
+                <!-- Maddox -->
+                <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-blue-800 text-sm">Escala de Maddox (Flebite)</h3>
+                        <div id="maddox-score-badge" class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full font-bold text-sm transition-colors">Grau 0</div>
+                    </div>
+                    <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Avaliação do Sítio de Punção</label>
+                    <select id="scale-maddox-grade" class="w-full p-2 border rounded text-sm bg-gray-50 text-gray-700" onchange="calculateScales()">
+                        <option value="0">Grau 0 - Sem sinais</option>
+                        <option value="1">Grau 1 - Sensibilidade ao toque, com/sem eritema</option>
+                        <option value="2">Grau 2 - Dor contínua, eritema/edema</option>
+                        <option value="3">Grau 3 - Dor, eritema, edema, cordão fibroso < 8cm</option>
+                        <option value="4">Grau 4 - Dor, eritema, edema, cordão palpável > 8cm</option>
+                        <option value="5">Grau 5 - Trombose venosa aparente</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tab: Evolução Final -->
+            <!-- Aqui a classe hidden garante que o botão não vaze para as outras telas -->
+            <div id="tab-evolution" class="tab-content hidden animate-fadeIn h-full flex flex-col space-y-4">
+                <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-start space-x-3 shrink-0">
+                    <i data-lucide="info" class="text-blue-500 mt-1 w-5 h-5 shrink-0"></i>
+                    <div>
+                        <h3 class="font-bold text-blue-800 text-sm">Geração de Evolução</h3>
+                        <p class="text-[13px] text-blue-700 mt-1 leading-tight">Abaixo está a compilação de todos os dados preenchidos. Clique no botão "Gerar Texto" para atualizar.</p>
+                    </div>
+                </div>
+
+                <button onclick="generateEvolutionText()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-md flex justify-center items-center shrink-0">
+                    <i data-lucide="pen-tool" class="w-5 h-5 mr-2"></i> Compilar Evolução Automática
+                </button>
+
+                <div class="relative flex-1 min-h-[300px] border rounded-lg bg-white overflow-hidden shadow-sm flex flex-col">
+                    <div class="bg-gray-100 p-2 border-b flex justify-between items-center shrink-0">
+                        <span class="text-xs sm:text-sm font-semibold text-gray-600 px-2">Texto Pronto</span>
+                        <button onclick="copyToClipboard()" id="copy-btn" class="flex items-center px-3 py-1 text-[13px] rounded transition bg-white border hover:bg-gray-50 text-gray-700 opacity-50 cursor-not-allowed" disabled>
+                            <i data-lucide="copy" class="w-4 h-4 mr-1"></i> <span id="copy-text-span">Copiar</span>
+                        </button>
+                    </div>
+                    <textarea id="output-text" class="w-full h-full min-h-[300px] p-3 sm:p-4 text-xs sm:text-sm font-mono text-gray-800 resize-none outline-none focus:ring-2 focus:ring-blue-500 flex-1" placeholder="Clique no botão azul acima para gerar a evolução baseada na sua visita..."></textarea>
+                </div>
+            </div>
+
+        </div> <!-- End Tab Content Area -->
+    </div> <!-- End Main Container -->
+
+    <!-- Modal de Confirmação (Substituindo o alert nativo) -->
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full animate-fadeIn text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
+            </div>
+            <h3 class="text-lg leading-6 font-bold text-gray-900 mb-2">Limpar todos os dados?</h3>
+            <p class="text-sm text-gray-500 mb-6">Tem certeza que deseja apagar a avaliação atual? Esta ação não pode ser desfeita.</p>
+            <div class="flex justify-between space-x-3">
+                <button onclick="closeClearModal()" class="w-1/2 rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none">Cancelar</button>
+                <button onclick="confirmClearAll()" class="w-1/2 rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none">Sim, limpar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Inicializa ícones na primeira carga
+        lucide.createIcons();
+
+        // Variável Global de Vasculares
+        let vascularList = [];
+
+        // Inicialização na carga da página
+        window.onload = function() {
+            setCurrentTime();
+            addVascularAccess(); // Adiciona o primeiro acesso vazio por padrão
+        };
+
+        function setCurrentTime() {
+            const now = new Date();
+            document.getElementById('visitTime').value = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Lógica de Abas
+        function switchTab(tabId) {
+            // Esconde todas as abas (mantém flex-col no evolution pra não quebrar a UI quando mostrar de novo)
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.add('hidden');
+                if(el.id === 'tab-evolution') {
+                    el.classList.remove('flex'); // Precisa tirar flex pra esconder direito
+                }
+            });
+            
+            // Mostra a aba clicada
+            const target = document.getElementById('tab-' + tabId);
+            target.classList.remove('hidden');
+            if(tabId === 'evolution') {
+                target.classList.add('flex'); // Restaura o flex do container do textarea
+            }
+            
+            // Atualiza botões
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.dataset.target === tabId) {
+                    btn.classList.add('border-blue-600', 'text-blue-700', 'bg-blue-50');
+                    btn.classList.remove('border-transparent', 'text-gray-500', 'hover:bg-gray-50');
+                } else {
+                    btn.classList.remove('border-blue-600', 'text-blue-700', 'bg-blue-50');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'hover:bg-gray-50');
+                }
+            });
+        }
+
+        // Lógica de Múltiplos Acessos Vasculares
+        function addVascularAccess() {
+            const newId = Date.now();
+            vascularList.push({
+                id: newId,
+                type: 'Nenhum',
+                location: '',
+                condition: 'Sem sinais flogísticos',
+                notes: ''
+            });
+            renderVascularList();
+        }
+
+        function removeVascularAccess(id) {
+            vascularList = vascularList.filter(v => v.id !== id);
+            renderVascularList();
+        }
+
+        function updateVascularField(id, field, value) {
+            const index = vascularList.findIndex(v => v.id === id);
+            if (index !== -1) {
+                vascularList[index][field] = value;
+            }
+        }
+
+        function renderVascularList() {
+            const container = document.getElementById('vascular-container');
+            container.innerHTML = ''; // Limpa
+
+            vascularList.forEach((vasc, index) => {
+                const isMultiple = vascularList.length > 1;
+                const html = `
+                    <div class="p-4 border border-purple-100 bg-purple-50/50 rounded-lg relative">
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-[10px] font-bold text-purple-800 uppercase tracking-wider">Acesso #${index + 1}</span>
+                            ${isMultiple ? `
+                            <button type="button" onclick="removeVascularAccess(${vasc.id})" class="text-red-400 hover:text-red-600 p-1 bg-white rounded-full shadow-sm" title="Remover este acesso">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Tipo de Acesso</label>
+                                <select onchange="updateVascularField(${vasc.id}, 'type', this.value)" class="w-full p-2 border rounded bg-white text-gray-700">
+                                    <option ${vasc.type === 'Nenhum' ? 'selected' : ''}>Nenhum</option>
+                                    <option ${vasc.type === 'Acesso Venoso Periférico (AVP)' ? 'selected' : ''}>Acesso Venoso Periférico (AVP)</option>
+                                    <option ${vasc.type === 'Cateter Venoso Central (CVC)' ? 'selected' : ''}>Cateter Venoso Central (CVC)</option>
+                                    <option ${vasc.type === 'PICC' ? 'selected' : ''}>PICC</option>
+                                    <option ${vasc.type === 'Port-a-Cath' ? 'selected' : ''}>Port-a-Cath</option>
+                                    <option ${vasc.type === 'Linha Arterial (PAI)' ? 'selected' : ''}>Linha Arterial (PAI)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Local</label>
+                                <input type="text" oninput="updateVascularField(${vasc.id}, 'location', this.value)" value="${vasc.location}" placeholder="Ex: Veia basílica MSE" class="w-full p-2 border rounded bg-white outline-none focus:ring-1 focus:ring-purple-500">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Condição</label>
+                                <select onchange="updateVascularField(${vasc.id}, 'condition', this.value)" class="w-full p-2 border rounded bg-white text-gray-700">
+                                    <option ${vasc.condition === 'Sem sinais flogísticos' ? 'selected' : ''}>Sem sinais flogísticos</option>
+                                    <option ${vasc.condition === 'Sinais de flebite' ? 'selected' : ''}>Sinais de flebite</option>
+                                    <option ${vasc.condition === 'Infiltrado/Extravasamento' ? 'selected' : ''}>Infiltrado/Extravasamento</option>
+                                    <option ${vasc.condition === 'Obstruído/Baixo fluxo' ? 'selected' : ''}>Obstruído/Baixo fluxo</option>
+                                    <option ${vasc.condition === 'Curativo limpo e seco' ? 'selected' : ''}>Curativo limpo e seco</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Infusões / Notas</label>
+                                <input type="text" oninput="updateVascularField(${vasc.id}, 'notes', this.value)" value="${vasc.notes}" placeholder="Ex: Soro fisiológico, Nora" class="w-full p-2 border rounded bg-white outline-none focus:ring-1 focus:ring-purple-500">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+            lucide.createIcons(); // Recria os ícones na lista recém gerada
+        }
+
+        // Lógica de Cálculo de Escalas
+        function calculateScales() {
+            // Glasgow
+            const gcsEye = parseInt(document.getElementById('scale-gcs-eye').value);
+            const gcsVerbal = parseInt(document.getElementById('scale-gcs-verbal').value);
+            const gcsMotor = parseInt(document.getElementById('scale-gcs-motor').value);
+            const gcsPupil = parseInt(document.getElementById('scale-gcs-pupil').value);
+            const gcsScore = (gcsEye + gcsVerbal + gcsMotor) - gcsPupil;
+            document.getElementById('glasgow-score-badge').innerText = `Total: ${gcsScore}`;
+
+            // RASS
+            const rassVal = parseInt(document.getElementById('scale-rass').value);
+            const rassBadge = document.getElementById('rass-score-badge');
+            rassBadge.innerText = `Score: ${rassVal > 0 ? '+' + rassVal : rassVal}`;
+            rassBadge.className = `px-3 py-1 rounded-full font-bold text-sm transition-colors ${rassVal > 0 ? 'bg-red-100 text-red-800' : (rassVal < 0 ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800')}`;
+
+            // Braden
+            const bSensory = parseInt(document.getElementById('scale-braden-sensory').value);
+            const bMoisture = parseInt(document.getElementById('scale-braden-moisture').value);
+            const bActivity = parseInt(document.getElementById('scale-braden-activity').value);
+            const bMobility = parseInt(document.getElementById('scale-braden-mobility').value);
+            const bNutrition = parseInt(document.getElementById('scale-braden-nutrition').value);
+            const bFriction = parseInt(document.getElementById('scale-braden-friction').value);
+            const bradenScore = bSensory + bMoisture + bActivity + bMobility + bNutrition + bFriction;
+            
+            let bradenText = 'Baixo Risco';
+            let bradenClass = 'bg-green-100 text-green-800';
+            if(bradenScore <= 9) { bradenText = 'Risco Muito Alto'; bradenClass = 'bg-red-200 text-red-900'; }
+            else if(bradenScore <= 12) { bradenText = 'Alto Risco'; bradenClass = 'bg-red-100 text-red-800'; }
+            else if(bradenScore <= 18) { bradenText = 'Risco Moderado'; bradenClass = 'bg-yellow-100 text-yellow-800'; }
+            
+            const bBadge = document.getElementById('braden-score-badge');
+            bBadge.innerText = `Total: ${bradenScore} (${bradenText})`;
+            bBadge.className = `px-3 py-1 rounded-full font-bold text-sm transition-colors ${bradenClass}`;
+
+            // Morse
+            const mHist = parseInt(document.getElementById('scale-morse-history').value);
+            const mDiag = parseInt(document.getElementById('scale-morse-diag').value);
+            const mAmb = parseInt(document.getElementById('scale-morse-ambulation').value);
+            const mIv = parseInt(document.getElementById('scale-morse-iv').value);
+            const mGait = parseInt(document.getElementById('scale-morse-gait').value);
+            const mMent = parseInt(document.getElementById('scale-morse-mental').value);
+            const morseScore = mHist + mDiag + mAmb + mIv + mGait + mMent;
+            
+            let morseText = 'Baixo Risco';
+            let morseClass = 'bg-green-100 text-green-800';
+            if(morseScore >= 45) { morseText = 'Alto Risco'; morseClass = 'bg-red-100 text-red-800'; }
+            else if(morseScore >= 25) { morseText = 'Risco Moderado'; morseClass = 'bg-yellow-100 text-yellow-800'; }
+            
+            const mBadge = document.getElementById('morse-score-badge');
+            mBadge.innerText = `Total: ${morseScore} (${morseText})`;
+            mBadge.className = `px-3 py-1 rounded-full font-bold text-sm transition-colors ${morseClass}`;
+
+            // Maddox
+            const maddoxGrade = parseInt(document.getElementById('scale-maddox-grade').value);
+            const madBadge = document.getElementById('maddox-score-badge');
+            madBadge.innerText = `Grau ${maddoxGrade}`;
+            madBadge.className = `px-3 py-1 rounded-full font-bold text-sm transition-colors ${maddoxGrade > 0 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-800'}`;
+        }
+
+        // Geração da Evolução
+        function generateEvolutionText() {
+            const initials = document.getElementById('patientInitials').value;
+            const bed = document.getElementById('bedNumber').value;
+            const time = document.getElementById('visitTime').value;
+
+            if (!initials || !bed) {
+                document.getElementById('output-text').value = "AVISO: Preencha as Iniciais do Paciente e o Leito no cabeçalho antes de gerar a evolução.";
+                return;
+            }
+
+            let text = `EVOLUÇÃO DE ENFERMAGEM - VISITA BEIRA-LEITO\n`;
+            text += `Data: ${new Date().toLocaleDateString('pt-BR')} | Hora: ${time}\n`;
+            text += `Paciente: ${initials} | Leito: ${bed}\n\n`;
+
+            // Segurança e Identificação
+            const idOk = document.getElementById('chk-id').checked;
+            text += `Durante a visita beira-leito, observou-se que o paciente `;
+            text += idOk ? `encontra-se com a pulseira de identificação legível e correta no membro. ` : `encontra-se SEM identificação adequada no momento da avaliação. `;
+            
+            let bands = [];
+            if(document.getElementById('chk-allergy-band').checked) bands.push('alergia (vermelha)');
+            if (bands.length > 0) text += `Faz uso de pulseira(s) de alerta para ${bands.join(' e ')}. `;
+
+            const allergies = document.getElementById('input-allergies').value;
+            if (allergies && allergies.toLowerCase() !== 'não' && allergies.toLowerCase() !== 'nenhuma') {
+                text += `Paciente com relato de alergia a: ${allergies}. `;
+            } else {
+                text += `Sem relatos de alergias conhecidas registradas na visita. `;
+            }
+
+            let safety = [];
+            if(document.getElementById('chk-rails').checked) safety.push('grades elevadas e travadas');
+            if(document.getElementById('chk-bed-elevated').checked) safety.push('cabeceira elevada (30-45°)');
+            if(document.getElementById('chk-bed-low').checked) safety.push('cama na posição baixa');
+            if(document.getElementById('chk-bell').checked) safety.push('campainha ao alcance');
+            
+            if (safety.length > 0) {
+                text += `Medidas de segurança no leito mantidas: ${safety.join(', ')}.\n\n`;
+            } else {
+                text += `Medidas de segurança do leito ausentes no momento da checagem.\n\n`;
+            }
+
+            // Exame Físico (Pegando Textos Dinamicamente)
+            const getVal = (id) => document.getElementById(id).value.toLowerCase();
+            const getRaw = (id) => document.getElementById(id).value;
+            
+            text += `Ao exame físico segmentar, apresenta-se ${getVal('phys-neuro-status')}, com pupilas ${getVal('phys-neuro-pupil')}`;
+            if(getRaw('phys-neuro-device') !== 'Nenhum') text += `, portando ${getRaw('phys-neuro-device')}`;
+            if(getRaw('phys-neuro-notes')) text += ` (${getRaw('phys-neuro-notes')})`;
+            text += `. `;
+
+            text += `Padrão respiratório ${getVal('phys-pulm-breathing')}, à ausculta pulmonar: ${getVal('phys-pulm-ausc')}`;
+            if(getRaw('phys-pulm-device') !== 'Nenhum') text += `. Em uso de ${getRaw('phys-pulm-device')}`;
+            if(getRaw('phys-pulm-notes')) text += ` (${getRaw('phys-pulm-notes')})`;
+            text += `. `;
+
+            text += `No aspecto hemodinâmico, apresenta ritmo cardíaco ${getVal('phys-cardiac-rhythm')}, pulso ${getVal('phys-cardiac-pulse')}, com ${getVal('phys-cardiac-capillary')}`;
+            if(getRaw('phys-cardiac-notes')) text += ` (${getRaw('phys-cardiac-notes')})`;
+            text += `. `;
+
+            // Acessos Vasculares
+            const activeVascular = vascularList.filter(v => v.type !== 'Nenhum');
+            if (activeVascular.length > 0) {
+                const vascText = activeVascular.map(v => 
+                    `em uso de ${v.type}${v.location ? ` localizado em ${v.location}` : ''}, apresentando-se ${v.condition.toLowerCase()}${v.notes ? ` (${v.notes})` : ''}`
+                ).join('; ');
+                text += `Acesso vascular: ${vascText}. `;
+            } else {
+                text += `Sem acessos vasculares em uso no momento. `;
+            }
+
+            text += `Referente ao sistema gastrointestinal, está ${getVal('phys-gi-diet')}. Abdome ${getVal('phys-gi-abd')}, hábito intestinal ${getVal('phys-gi-bowel')}`;
+            if(getRaw('phys-gi-device') !== 'Nenhum') text += `. Em uso de ${getRaw('phys-gi-device')}`;
+            if(getRaw('phys-gi-notes')) text += ` (${getRaw('phys-gi-notes')})`;
+            text += `. `;
+
+            text += `Apresenta ${getVal('phys-uri-elim')}, de aspecto ${getVal('phys-uri-app')}`;
+            if(getRaw('phys-uri-device') !== 'Nenhum') text += `, portando ${getRaw('phys-uri-device')}`;
+            if(getRaw('phys-uri-notes')) text += ` (${getRaw('phys-uri-notes')})`;
+            text += `. `;
+
+            text += `A pele encontra-se ${getVal('phys-int-skin')}, e o paciente está ${getVal('phys-int-temp')}`;
+            if(getRaw('phys-int-notes')) text += ` (${getRaw('phys-int-notes')})`;
+            text += `.\n\n`;
+
+            // Escalas
+            text += `ESCALAS DE AVALIAÇÃO:\n`;
+            
+            const gcsBase = parseInt(getRaw('scale-gcs-eye')) + parseInt(getRaw('scale-gcs-verbal')) + parseInt(getRaw('scale-gcs-motor'));
+            const gcsFinal = gcsBase - parseInt(getRaw('scale-gcs-pupil'));
+            text += `- Escala de Coma de Glasgow (ECG-P): ${gcsFinal} (Ocular: ${getRaw('scale-gcs-eye')}, Verbal: ${getRaw('scale-gcs-verbal')}, Motora: ${getRaw('scale-gcs-motor')}, Reatividade Pupilar: -${getRaw('scale-gcs-pupil')})\n`;
+            
+            const rassDropdown = document.getElementById('scale-rass');
+            text += `- RASS: ${rassDropdown.options[rassDropdown.selectedIndex].text}\n`;
+            
+            text += `- Escala de Braden: ${document.getElementById('braden-score-badge').innerText.replace('Total: ', '')}\n`;
+            text += `- Escala de Morse: ${document.getElementById('morse-score-badge').innerText.replace('Total: ', '')}\n`;
+            
+            const maddoxDropdown = document.getElementById('scale-maddox-grade');
+            text += `- Escala de Maddox: ${maddoxDropdown.options[maddoxDropdown.selectedIndex].text}\n`;
+
+            text += `\nOriento paciente/acompanhante quanto aos cuidados. Sigo prestando assistência de enfermagem.\n`;
+            text += `Enfermeiro(a):\nCOREN:`;
+
+            // Exibir Texto
+            document.getElementById('output-text').value = text;
+            
+            // Habilitar Botão de Copiar
+            const btn = document.getElementById('copy-btn');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.classList.add('hover:bg-gray-100', 'cursor-pointer');
+        }
+
+        // Função de Copiar
+        function copyToClipboard() {
+            const copyText = document.getElementById("output-text");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); // Mobile
+            
+            try {
+                document.execCommand('copy');
+                const span = document.getElementById('copy-text-span');
+                const icon = document.querySelector('#copy-btn i');
+                
+                span.innerText = "Copiado!";
+                document.getElementById('copy-btn').classList.add('bg-green-50', 'text-green-700', 'border-green-200');
+                
+                setTimeout(() => {
+                    span.innerText = "Copiar Texto";
+                    document.getElementById('copy-btn').classList.remove('bg-green-50', 'text-green-700', 'border-green-200');
+                }, 2000);
+            } catch (err) {
+                console.error('Falha ao copiar', err);
+            }
+        }
+
+        // Sistema de Modal para Limpar
+        function showClearModal() {
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function closeClearModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        function confirmClearAll() {
+            // Limpa Textos
+            document.getElementById('patientInitials').value = '';
+            document.getElementById('bedNumber').value = '';
+            document.getElementById('input-allergies').value = '';
+            document.getElementById('output-text').value = '';
+            
+            // Desabilita Copy
+            const btn = document.getElementById('copy-btn');
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            // Limpa Checkboxes
+            ['chk-id', 'chk-allergy-band', 'chk-rails', 'chk-bed-elevated', 'chk-bed-low', 'chk-bell'].forEach(id => {
+                document.getElementById(id).checked = false;
+            });
+
+            // Reseta Selects
+            document.querySelectorAll('select').forEach(select => {
+                select.selectedIndex = 0;
+                // Exceção pro RASS que o default é 0 (índice 4)
+                if(select.id === 'scale-rass') select.selectedIndex = 4;
+                // Maddox default é 0 (índice 0)
+            });
+
+            // Limpa Inputs da fisíca
+            ['phys-neuro-notes', 'phys-pulm-notes', 'phys-cardiac-notes', 'phys-gi-notes', 'phys-uri-notes', 'phys-int-notes'].forEach(id => {
+                document.getElementById(id).value = '';
+            });
+
+            // Reseta Vasculares
+            vascularList = [];
+            addVascularAccess();
+
+            // Recalcula badges
+            calculateScales();
+            setCurrentTime();
+            switchTab('identification');
+            closeClearModal();
+        }
+    </script>
+</body>
+</html>
